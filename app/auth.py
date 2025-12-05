@@ -1,25 +1,26 @@
-# app/auth.py
+from fastapi import HTTPException, Depends, status
+from fastapi.security import OAuth2Bearer
+from .models import TokenData
+from .jwt import decode_access_token
 
-from fastapi import Header, HTTPException, Depends
-from fastapi.security import OAuth2PasswordBearer
-from .config import settings
-from .security import decode_access_token # Import the decoding function
+# Define dependency to extract token from Authorization: Bearer header
+oauth2_scheme = OAuth2Bearer(tokenUrl="/auth/token")
 
-# Use OAuth2PasswordBearer for token extraction (defaults to 'Bearer <token>')
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-# Remove the old verify_api_key function
-
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    """Decodes the JWT and validates its contents."""
+def verify_token(token: str = Depends(oauth2_scheme)) -> TokenData:
+    """Verifies the JWT and returns the payload data."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     
     payload = decode_access_token(token)
-    
     if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired authentication token")
+        raise credentials_exception
 
-    # In a real app, you would fetch user data from a DB here using payload['sub']
-    # For this exercise, we just verify the payload exists.
-    
-    # This return value can be used as the dependency result
-    return payload
+    # Ensure the token has a subject identity
+    token_data = TokenData(sub=payload.get("sub"))
+    if token_data.sub is None:
+        raise credentials_exception
+        
+    return token_data

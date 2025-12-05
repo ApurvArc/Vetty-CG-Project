@@ -5,3 +5,4 @@ python-dotenv
 pydantic
 pytest
 pytest-cov
+python-jose[cryptography]

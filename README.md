@@ -20,13 +20,13 @@ Endpoint: `/categories`
 * Supports pagination using `page_num` and `per_page`
   Endpoint: `/coins/filter`
 
-### ✅ 4. Authentication
+### ✅ 4. Authentication (Updated to JWT)
 
-The API uses token-based header authentication:
+The API now uses **JSON Web Token (JWT) Bearer Authentication**.
 
-```
-x-api-key: <INTERNAL_API_KEY>
-```
+**1. Get Access Token:** First, exchange your `INTERNAL_API_KEY` for a JWT via the dedicated login endpoint.
+
+**2. Authenticate Requests:** Use the received `access_token` in the `Authorization` header for all protected endpoints.
 
 ### ✅ 5. Swagger API Documentation
 

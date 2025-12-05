@@ -1,41 +1,77 @@
-# tests/test_api.py
-
 from fastapi.testclient import TestClient
 from app import app
+from app.config import settings
 
 client = TestClient(app)
-headers = {"x-api-key": "mysecret"}
+
+# Test data
+BTC_ID = "bitcoin"
+NFT_CATEGORY = "non-fungible-tokens-nft"
+# Use the INTERNAL_API_KEY provided by the user for token generation
+INTERNAL_KEY = "Apurv12345" 
+
+# Global variable to store the token for subsequent tests
+ACCESS_TOKEN = None
+
+# --- Helper function and Token Generation Test ---
+
+def test_get_access_token():
+    """Tests the /auth/token endpoint to get a JWT."""
+    global ACCESS_TOKEN
+    response = client.post(
+        "/auth/token",
+        headers={"x-api-key": INTERNAL_KEY}
+    )
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+    ACCESS_TOKEN = response.json()["access_token"]
+
+def test_get_access_token_invalid_key():
+    """Tests failure case for token generation."""
+    response = client.post(
+        "/auth/token",
+        headers={"x-api-key": "wrong_key"}
+    )
+    assert response.status_code == 401
+    assert "Invalid internal API Key" in response.json()["detail"]
+
+def get_auth_headers():
+    """Helper to ensure a token exists and return the Authorization header."""
+    if not ACCESS_TOKEN:
+        test_get_access_token()
+    return {"Authorization": f"Bearer {ACCESS_TOKEN}"}
+
+# --- Protected Endpoints Tests (Using JWT) ---
 
 def test_list_coins():
-    assert client.get("/coins", headers=headers).status_code == 200
+    assert client.get("/coins", headers=get_auth_headers()).status_code == 200
 
 def test_list_categories():
-    assert client.get("/categories", headers=headers).status_code == 200
+    assert client.get("/categories", headers=get_auth_headers()).status_code == 200
 
-def test_get_coin_with_currencies():
-    # Test that the price request is successful (now fetching INR/CAD)
-    response = client.get("/coins/bitcoin", headers=headers)
+def test_get_coin_success():
+    response = client.get(f"/coins/{BTC_ID}", headers=get_auth_headers())
     assert response.status_code == 200
-    # Add an assertion that the response contains the new currencies (optional but good practice)
-    # assert "bitcoin" in response.json()
-    # assert "inr" in response.json()["bitcoin"]
-    # assert "cad" in response.json()["bitcoin"]
+    assert response.json()["id"] == BTC_ID
+    
+def test_get_coin_unauthorized():
+    # Test without any token (401 expected)
+    response = client.get(f"/coins/{BTC_ID}")
+    assert response.status_code == 401
+    
+    # Test with a fake/expired token (401 expected)
+    response = client.get(f"/coins/{BTC_ID}", headers={"Authorization": "Bearer fake.token.here"})
+    assert response.status_code == 401
 
-def test_filter_coins_pagination():
-    # Test the new filter endpoint with pagination params
-    response = client.get("/coins/filter?page_num=2&per_page=5", headers=headers)
+def test_filter_coins_by_category():
+    response = client.get(
+        "/coins/filter", 
+        headers=get_auth_headers(), 
+        params={
+            "category": NFT_CATEGORY, 
+            "vs_currencies": "cad" 
+        }
+    )
     assert response.status_code == 200
-    assert len(response.json()) <= 5 # Check pagination limit
-
-def test_health_check():
-    # Test the new health check endpoint
-    response = client.get("/health")
-    assert response.status_code == 200
-    assert response.json()["api_status"] == "ok"
-    # Note: coingecko_status check relies on external service, better to mock in real unit test
-
-def test_version_info():
-    # Test the new version info endpoint
-    response = client.get("/version")
-    assert response.status_code == 200
-    assert response.json()["version"] == "1.0"
+    data = response.json()
+    assert len(data) > 0

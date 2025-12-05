@@ -1,68 +1,52 @@
-# app/main.py
-
 from fastapi import APIRouter, Depends, Query, HTTPException
-from .auth import verify_api_key
+from typing import List, Optional
+# from .auth import verify_api_key # OLD: Removed
+from .auth import verify_token # NEW: Imported for JWT verification
 from .coingecko_client import CoinGeckoClient
-from typing import Optional, List # Import Optional and List
-from .models import Coin, CoinDetails # Import Coin and CoinDetails for type hinting
+from .models import Coin, CoinCategory, CoinDetails, MarketCoinDetails, TokenData # Import TokenData
 
 router = APIRouter()
 client = CoinGeckoClient()
 
-# ... existing code for /coins and /categories ...
+@router.get("/coins", response_model=List[Coin])
+def list_coins(token_data: TokenData = Depends(verify_token)): # Changed dependency
+    return client.list_coins()
 
-@router.get("/coins/filter", response_model=List[Coin])
+@router.get("/categories", response_model=List[CoinCategory])
+def list_categories(token_data: TokenData = Depends(verify_token)): # Changed dependency
+    return client.list_categories()
+
+@router.get("/coins/{coin_id}", response_model=CoinDetails)
+def get_coin(coin_id: str, token_data: TokenData = Depends(verify_token)): # Changed dependency
+    return client.get_coin(coin_id, vs_currencies="usd,inr,cad")
+
+@router.get("/coins/filter", response_model=List[MarketCoinDetails])
 def filter_coins(
-    category: Optional[str] = Query(None, description="Filter by category name"),
-    page_num: int = Query(1, description="Page number for pagination", ge=1),
-    per_page: int = Query(10, description="Items per page", ge=1, le=250),
-    api_key: str = Depends(verify_api_key),
+    token_data: TokenData = Depends(verify_token), # Changed dependency
+    ids: Optional[str] = Query(None, description="Comma-separated list of coin IDs (e.g., 'bitcoin,ethereum')"),
+    category: Optional[str] = Query(None, description="Filter by coin category ID (e.g., 'decentralized_finance')"),
+    vs_currencies: str = Query("usd", description="Base currency for prices (e.g., 'usd' or 'inr' or 'cad')"),
+    page_num: int = Query(1, ge=1, description="Page number for pagination"),
+    per_page: int = Query(10, ge=1, le=250, description="Items per page (max 250)")
 ):
-    """
-    List specific coins according to ID and/or category, with pagination.
-    Note: CoinGecko's 'coins/list' endpoint provides the full list, so pagination
-    is handled manually by slicing the result.
-    """
-    coins = client.list_coins()
-    # Logic to filter by category would be implemented here
-    # Since CoinGecko list endpoint doesn't support category, 
-    # we'll use a simplified implementation that assumes 'list_coins'
-    # returns objects that can be easily filtered or we'd fetch all market data.
     
-    # Simple Manual Pagination (Required for coins/list)
-    start_index = (page_num - 1) * per_page
-    end_index = start_index + per_page
-    paginated_coins = coins[start_index:end_index]
-    
-    # Convert dicts to Pydantic models for response_model compliance (optional for this list endpoint)
-    # return [Coin(**c) for c in paginated_coins]
-    return paginated_coins
+    if ids and category:
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot filter by both 'ids' and 'category' simultaneously. Choose one."
+        )
 
+    supported_currencies = ["usd", "inr", "cad"]
+    if vs_currencies.lower() not in supported_currencies:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Unsupported currency: {vs_currencies}. Only {', '.join(supported_currencies).upper()} are supported."
+        )
 
-@router.get("/health")
-def health_check():
-    """Health check for the application and CoinGecko service."""
-    try:
-        # Check external service status
-        coingecko_status = client.ping() 
-        return {
-            "api_status": "ok",
-            "coingecko_status": "ok" if coingecko_status.get("gecko_says") else "down",
-        }
-    except Exception as e:
-        # If API call fails completely
-        raise HTTPException(status_code=503, detail=f"Service unavailable: {e}")
-
-@router.get("/version")
-def version_info():
-    """Returns application version information."""
-    return {
-        "version": "1.0",
-        "service": "Crypto Market API",
-        "author": "Apurv Choudhary" # Add author info from README
-    }
-
-# Update the existing /coins/{coin_id} to ensure proper use of the new client method
-@router.get("/coins/{coin_id}", response_model=dict)
-def get_coin(coin_id: str, api_key: str = Depends(verify_api_key)):
-    return client.get_coin(coin_id)
+    return client.get_filtered_coins(
+        ids=ids, 
+        category=category, 
+        vs_currencies=vs_currencies, 
+        page=page_num, 
+        per_page=per_page
+    )
