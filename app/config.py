@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     coingecko_api_key: str
-    internal_api_key: str = "mysecret"   # change in .env for production
+    internal_api_key: str = "mysecret" 
 
     model_config = {
         "env_file": ".env",
