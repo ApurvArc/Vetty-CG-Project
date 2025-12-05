@@ -61,7 +61,7 @@ Configured via `pyproject.toml`.
 ## 📁 Project Structure
 
 ```
-crypto_market_api/
+Vetty CG Project/
 ├── app/
 │   ├── __init__.py
 │   ├── auth.py
