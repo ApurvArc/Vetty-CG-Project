@@ -1,46 +1,66 @@
-📈 Crypto Market API
+# Crypto Market API
 
-FastAPI-based cryptocurrency market data service powered by the CoinGecko API.
-Implements authentication, pagination, INR/CAD currency conversion, categories, and coin lookups.
+A production-ready FastAPI service that provides cryptocurrency market data powered by the CoinGecko API. This project was built as part of the **Vetty Intern – Python API Technical Exercise** and implements all required features including authentication, pagination, Docker support, and unit tests.
 
-🚀 Features (Version 1.0)
-✅ Basic Requirements
+---
 
-List all coins (with coin IDs)
+## 🚀 Features Implemented (Per Assignment Requirements)
 
-List all coin categories
+### ✅ 1. List all coins including coin ID
 
-Fetch market data for a specific coin
+Endpoint: `/coins`
 
-Market prices returned in INR (₹) and CAD ($)
+### ✅ 2. List all coin categories
 
-Pagination support
+Endpoint: `/categories`
 
-page_num → default 1
+### ✅ 3. Get specific coins (by ID or category)
 
-per_page → default 10
+* Supports INR and CAD market prices
+* Supports pagination using `page_num` and `per_page`
+  Endpoint: `/coins/filter`
 
-Token-based authentication
+### ✅ 4. Authentication
 
-API requires a valid x-api-key header
+The API uses token-based header authentication:
 
-Swagger documentation available at /docs
+```
+x-api-key: <INTERNAL_API_KEY>
+```
 
-Unit tests included (pytest, pytest-cov)
+### ✅ 5. Swagger API Documentation
 
-⭐ Extra Features
+Available automatically at:
 
-Docker + Docker Compose support
+```
+http://localhost:8000/docs
+```
 
-Health check endpoint
+### ✅ 6. Unit Tests Included
 
-Version information endpoint
+Run tests using:
 
-Environment-based configuration
+```
+pytest --cov
+```
 
-Linting setup (pyproject.toml)
+### ✅ 7. Docker Support
 
-🗂 Project Structure
+Run using Docker Compose:
+
+```
+docker-compose up --build
+```
+
+### ✅ 8. Linting & Quality Control
+
+Configured via `pyproject.toml`.
+
+---
+
+## 📁 Project Structure
+
+```
 crypto_market_api/
 ├── app/
 │   ├── __init__.py
@@ -54,162 +74,115 @@ crypto_market_api/
 ├── .env.example
 ├── Dockerfile
 ├── docker-compose.yml
+├── requirements.txt
 ├── pyproject.toml
-├── README.md
-└── requirements.txt
+└── README.md
+```
 
-🔑 Authentication
+---
 
-Every endpoint requires a valid API key.
+## 🔧 Setup Instructions
 
-Include this header in all requests:
+### 1️⃣ Create virtual environment
 
-x-api-key: YOUR_INTERNAL_API_KEY
-
-
-Your .env file should include:
-
-COINGECKO_API_KEY=your-key-here
-INTERNAL_API_KEY=your-secret-token
-
-
-Do not commit real secrets. Only commit .env.example.
-
-🔧 Installation & Local Development
-1️⃣ Clone the repository
-git clone https://github.com/ApurvArc/crypto_market_api.git
-cd crypto_market_api
-
-2️⃣ Create a virtual environment
+```
 python -m venv .venv
-.\.venv\Scripts\activate     # Windows
+```
 
-3️⃣ Install dependencies
+### 2️⃣ Activate environment (Windows)
+
+```
+.venv\Scripts\activate
+```
+
+### 3️⃣ Install dependencies
+
+```
 pip install -r requirements.txt
+```
 
-4️⃣ Create .env file
-copy .env.example .env
+### 4️⃣ Copy environment template
 
+```
+cp .env.example .env
+```
 
-Add your API keys.
+Fill environment variables:
 
-5️⃣ Run the API locally
-python -m uvicorn app:app --reload --host 0.0.0.0 --port 8000
+```
+COINGECKO_API_KEY=your_api_key_here
+INTERNAL_API_KEY=your_internal_access_key
+```
 
+### 5️⃣ Run the API
 
-API will start at:
+```
+uvicorn app:app --reload
+```
 
+API runs at:
+
+```
 http://localhost:8000
+```
 
+---
 
-Swagger docs:
+## 🧪 Running Tests
 
-http://localhost:8000/docs
+```
+pytest --cov
+```
 
-📡 API Endpoints
-🔹 GET /coins
+---
 
-List coins (paginated).
+## 🐳 Running in Docker
 
-Example:
-
-GET /coins?page_num=1&per_page=10
-
-
-Headers:
-
-x-api-key: YOUR_INTERNAL_API_KEY
-
-🔹 GET /categories
-
-Returns list of cryptocurrency categories.
-
-🔹 GET /coins/{coin_id}
-
-Returns detailed market data for a specific coin.
-
-Example:
-
-GET /coins/bitcoin
-
-
-Currency output:
-
-{
-  "bitcoin": {
-    "inr": 7450000,
-    "cad": 122000
-  }
-}
-
-📦 Running with Docker
-Build image
-docker build -t crypto-market-api .
-
-Run container
-docker run -p 8000:8000 --env-file .env crypto-market-api
-
-With docker-compose
+```
 docker-compose up --build
+```
 
-🧪 Running Tests
+---
 
-Run unit tests:
+## 🩺 Health Check & Version Info
 
-pytest
+**Health Check:** `/health`
+**Version:** `/version`
 
+---
 
-Run with coverage:
+## 🔐 Authentication
 
-pytest --cov=app
+Every API request must include:
 
-🩺 Health & Version Endpoints
-GET /health
+```
+x-api-key: your_internal_api_key
+```
 
-Checks:
+Example cURL:
 
-Application status
+```
+curl -H "x-api-key: Apurv12345" http://localhost:8000/coins
+```
 
-CoinGecko service availability
+---
 
-GET /version
+## 📌 Submission Notes (For Vetty Review Team)
 
-Returns:
+This project demonstrates:
 
-{
-  "version": "1.0.0",
-  "framework": "FastAPI",
-  "python": "3.11"
-}
+* Clean architecture following KISS, DRY, and Zen of Python
+* Secure environment variable handling
+* Clear documentation
+* Proper authentication
+* Pagination support
+* Dockerized deployment
+* Unit test coverage
+* Modular and professional project structure
 
-🧹 Code Quality
+---
 
-Linting + formatting:
+## 🙌 Author
 
-ruff check .
-black .
-isort .
-
-
-(Packages configured in pyproject.toml)
-
-🛠 Tech Stack
-
-FastAPI
-
-Pydantic
-
-Uvicorn
-
-Requests / HTTPX
-
-Pytest
-
-Docker
-
-Swagger / OpenAPI
-
-🙌 Author
-
-Apurv
-GitHub: https://github.com/ApurvArc
+**Apurv Choudhary**
+GitHub: [https://github.com/ApurvArc](https://github.com/ApurvArc)
